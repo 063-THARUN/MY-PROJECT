@@ -161,7 +161,7 @@ app.post("/upload", upload.single("file"), async (req, res) => {
         res.status(500).json({ error: "Failed to process file: " + error.message });
     }
 });
-this is new line
+
 // Route to get student details
 app.get("/getStudentDetails/:registerNumber", async (req, res) => {
     try {
