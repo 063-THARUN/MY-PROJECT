@@ -30,6 +30,12 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
+// At the top of your file, add the path
+const logoPath = path.join(__dirname, 'assets', 'vcet-logo.png');
+
+// At the top of your file, after requiring modules
+const fontPath = path.join(__dirname, 'assets', 'times-new-roman.ttf');
+
 // Function to get student grades from Excel
 async function getStudentGradesFromExcel(excelFilePath, registerNumber) {
     try {
@@ -228,74 +234,132 @@ app.get("/getStudentDetails/:registerNumber", async (req, res) => {
         const writeStream = fs.createWriteStream(pdfPath);
         doc.pipe(writeStream);
 
-        // Add college logo (you'll need to add the logo file to your project)
-        // doc.image('path/to/vcet-logo.png', 50, 45, { width: 80 });
-
-        // Add header
-        doc.fontSize(16).text("VELAMMAL COLLEGE OF ENGINEERING & TECHNOLOGY", { align: 'center' });
-        doc.fontSize(12).text("(Autonomous)", { align: 'center' });
-        doc.fontSize(10).text("(Accredited by NAAC with 'A' Grade and by NBA for 5 UG Programmes)", { align: 'center' });
-        doc.fontSize(10).text("(Approved by AICTE and affiliated to Anna University, Chennai)", { align: 'center' });
-        doc.fontSize(10).text("Velammal Nagar, Madurai - Rameswaram High Road, Viraganoor, Madurai - 625 009, Tamilnadu", { align: 'center' });
-        
-        // Add contact details
-        doc.moveDown();
-        doc.fontSize(10).text('Phone : 0452 - 2465285 / 2465849, Tele Fax : 0452 - 2465289', { align: 'center' });
-        doc.fontSize(10).text('Web : www.vcet.ac.in   E-mail : principal@vcet.ac.in', { align: 'center' });
-
-        // Add reference number and date
-        doc.moveDown();
-        const currentDate = new Date().toLocaleDateString('en-GB');
-        doc.fontSize(11).text(`Ref: VCET/CSE/2024-2025/BC/${studentData['Register No.']}`, { align: 'left' });
-        doc.text(`Date: ${currentDate}`, { align: 'right' });
-
-        // Add certificate title
-        doc.moveDown();
-        doc.fontSize(14).text('BONAFIDE CERTIFICATE', { align: 'center', underline: true });
-        
-        // Add student details
-        doc.moveDown();
-        doc.fontSize(11).text(`This is to certify that ${studentData['Name of the student']} (Roll No: ${studentData['Register No.']}) of III year B.E. 'A' Section in the Department of Computer Science and Engineering is a bonafide student of our College during the academic year 2024 - 2025. His Anna University result for IV Semester are as follows.`, {
-            align: 'justify',
-            lineGap: 2
+        // Add college logo
+        doc.image(logoPath, 50, 45, { 
+            width: 60,
+            height: 60
         });
 
-        // Add grades table
-        doc.moveDown();
+        // College header with exact spacing
+        doc.font('Helvetica-Bold').fontSize(16)
+           .text('VELAMMAL COLLEGE OF ENGINEERING & TECHNOLOGY', 120, 50, {
+                align: 'center',
+                width: doc.page.width - 140
+           });
+
+        doc.font('Helvetica').fontSize(12)
+           .text('(Autonomous)', 120, 75, {
+                align: 'center',
+                width: doc.page.width - 140
+           });
+
+        doc.fontSize(11)
+           .text('(Accredited by NAAC with \'A\' Grade and by NBA for 5 UG Programmes)', 120, 95, {
+                align: 'center',
+                width: doc.page.width - 140
+           });
+
+        doc.fontSize(11)
+           .text('(Approved by AICTE and affiliated to Anna University, Chennai)', 120, 110, {
+                align: 'center',
+                width: doc.page.width - 140
+           });
+
+        doc.fontSize(11)
+           .text('Velammal Nagar, Madurai - Rameswaram High Road, Viraganoor, Madurai - 625 009, Tamilnadu', 120, 125, {
+                align: 'center',
+                width: doc.page.width - 140
+           });
+
+        // Principal and contact details
+        doc.font('Helvetica-Bold').fontSize(11)
+           .text('Dr. P. Alli, M.S., Ph.D.', 50, 160);
+        doc.font('Helvetica').fontSize(11)
+           .text('Principal', 50, 175);
+
+        doc.fontSize(11)
+           .text('Phone : 0452 - 2465285 / 2465849, Tele Fax : 0452 - 2465289', {
+                align: 'right',
+                width: doc.page.width - 100,
+                y: 160
+           });
+        doc.text('Web : www.vcet.ac.in   E-mail : principal@vcet.ac.in', {
+                align: 'right',
+                width: doc.page.width - 100,
+                y: 175
+           });
+
+        // Horizontal line
+        doc.moveTo(50, 195).lineTo(545, 195).stroke();
+
+        // Reference number and date
+        doc.fontSize(11)
+           .text(`Ref: VCET/CSE/2024-2025/BC/${studentData['Register No.']}`, 50, 215);
+        doc.text(`Date: ${new Date().toLocaleDateString('en-GB')}`, {
+            align: 'right',
+            width: doc.page.width - 100,
+            y: 215
+        });
+
+        // Certificate title
+        doc.font('Helvetica-Bold').fontSize(14)
+           .text('BONAFIDE CERTIFICATE', {
+                align: 'center',
+                y: 255
+           });
+
+        // Certificate content with proper spacing and formatting
+        const certificateText = `This is to certify that ${studentData['Name of the student']} (Roll No: ${studentData['Register No.']}) of III year B.E. 'A' Section in the Department of Computer Science and Engineering is a bonafide student of our College during the academic year 2024 - 2025. His Anna University result for IV Semester are as follows.`;
+
+        doc.font('Helvetica').fontSize(11)
+           .text(certificateText, 50, 290, {
+                align: 'justify',
+                width: doc.page.width - 100,
+                lineGap: 5
+           });
+
+        // Add table with proper borders and spacing
+        const tableTop = 360;
         const tableData = {
             headers: ['SUBJECT CODE', 'GRADE', 'RESULT'],
             rows: Object.entries(studentData.subjects).map(([code, grade]) => [code, grade, 'PASS'])
         };
 
         await doc.table(tableData, {
-            prepareHeader: () => doc.fontSize(11).font('Helvetica-Bold'),
-            prepareRow: (row, indexColumn, indexRow, rectRow, rectCell) => {
-                doc.fontSize(11).font('Helvetica');
-                return row;
-            },
-            width: 500,
+            prepareHeader: () => doc.font('Helvetica-Bold').fontSize(11),
+            prepareRow: () => doc.font('Helvetica').fontSize(11),
+            width: 495,
+            x: 50,
+            y: tableTop,
             padding: 8,
             divider: {
                 header: { disabled: false, width: 1, opacity: 1 },
-                horizontal: { disabled: false, width: 0.5, opacity: 1 }
+                horizontal: { disabled: false, width: 0.5, opacity: 0.5 }
             },
-            border: { size: 1, color: '#000000' }
+            border: { size: 0.5, color: '#000000' }
         });
 
-        // Add purpose
-        doc.moveDown();
-        doc.fontSize(11).text('This certificate is issued for Scholarship purpose only.', { align: 'left' });
-
-        // Add signature spaces
+        // Purpose text
         doc.moveDown(4);
-        doc.fontSize(11).text('HOD/CSE', 50, doc.y);
-        doc.text('PRINCIPAL', 450, doc.y);
+        doc.fontSize(11)
+           .text('This certificate is issued for Scholarship purpose only.', 50, doc.y + 20);
+
+        // Signature spaces
+        doc.moveDown(4);
+        doc.fontSize(11)
+           .text('HOD/CSE', 50, doc.y + 40);
+        doc.text('PRINCIPAL', {
+            align: 'right',
+            width: doc.page.width - 100,
+            y: doc.y
+        });
 
         doc.end();
 
         writeStream.on('finish', () => {
+            // Send PDF file
             res.setHeader('Content-Type', 'application/pdf');
-            res.setHeader('Content-Disposition', `attachment; filename=${studentData['Register No.']}_bonafide.pdf`);
+            res.setHeader('Content-Disposition', `attachment; filename=${studentData['Register No.']}_grades.pdf`);
             fs.createReadStream(pdfPath).pipe(res);
         });
 
