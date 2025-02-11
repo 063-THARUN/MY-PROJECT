@@ -2,30 +2,14 @@ import React, { useState } from 'react';
 import {
   Container,
   Paper,
-  Typography,
-  Box,
   TextField,
   Button,
+  Typography,
+  Box,
   CircularProgress,
-  Alert,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow
+  Alert
 } from '@mui/material';
-import { styled } from '@mui/material/styles';
-import CloudUploadIcon from '@mui/icons-material/CloudUpload';
-import SearchIcon from '@mui/icons-material/Search';
-import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import axios from 'axios';
-
-const BACKEND_URL = 'http://localhost:3002';
-
-const Input = styled('input')({
-  display: 'none',
-});
 
 function App() {
   const [file, setFile] = useState(null);
@@ -33,144 +17,123 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [studentData, setStudentData] = useState(null);
 
   const handleFileUpload = async (event) => {
-    const selectedFile = event.target.files[0];
-    setFile(selectedFile);
-    
-    const formData = new FormData();
-    formData.append('file', selectedFile);
-
     try {
       setLoading(true);
       setError('');
-      const response = await axios.post(`${BACKEND_URL}/upload`, formData);
+      setSuccess('');
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await axios.post('http://localhost:3002/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
       setSuccess('File uploaded successfully!');
-      console.log(response.data);
-    } catch (err) {
-      setError('Error uploading file: ' + err.message);
+      setFile(null);
+    } catch (error) {
+      setError(error.response?.data?.error || 'Error uploading file');
     } finally {
       setLoading(false);
     }
   };
 
   const handleSearch = async () => {
-    if (!registerNumber) {
-      setError('Please enter a register number');
-      return;
-    }
-
     try {
       setLoading(true);
       setError('');
-      const response = await axios.get(`${BACKEND_URL}/getStudentDetails/${registerNumber}`);
-      setStudentData(response.data);
-    } catch (err) {
-      setError('Error finding student: ' + err.message);
-      setStudentData(null);
+      setSuccess('');
+
+      // This will now trigger a PDF download
+      window.open(`http://localhost:3002/getStudentDetails/${registerNumber}`, '_blank');
+      setSuccess('Grade report generated successfully!');
+    } catch (error) {
+      setError(error.response?.data?.error || 'Error fetching student details');
     } finally {
       setLoading(false);
     }
   };
 
-  const viewPDF = () => {
-    window.open(`${BACKEND_URL}/viewPDF`, '_blank');
-  };
-
   return (
-    <Container maxWidth="md" sx={{ py: 4 }}>
+    <Container maxWidth="md" sx={{ mt: 4 }}>
       <Paper elevation={3} sx={{ p: 4 }}>
         <Typography variant="h4" align="center" gutterBottom>
-          Student Grade Management
+          Grade Management System
+        </Typography>
+        
+        <Typography variant="h6" align="center" gutterBottom color="primary">
+          Velammal College of Engineering and Technology
+        </Typography>
+        
+        <Typography variant="subtitle1" align="center" gutterBottom>
+          Department of Computer Science and Engineering
         </Typography>
 
-        {/* File Upload Section */}
-        <Box sx={{ my: 4, textAlign: 'center' }}>
-          <label htmlFor="contained-button-file">
-            <Input 
-              accept=".xlsx,.xls" 
-              id="contained-button-file" 
-              type="file" 
-              onChange={handleFileUpload}
-            />
-            <Button
-              variant="contained"
-              component="span"
-              startIcon={<CloudUploadIcon />}
-              sx={{ mr: 2 }}
-            >
-              Upload Excel
-            </Button>
-          </label>
+        <Box sx={{ mt: 4 }}>
+          <Typography variant="h6" gutterBottom>
+            Upload Excel File
+          </Typography>
           
-          <Button
-            variant="contained"
-            color="secondary"
-            startIcon={<PictureAsPdfIcon />}
-            onClick={viewPDF}
-          >
-            View PDF
-          </Button>
-        </Box>
-
-        {/* Search Section */}
-        <Box sx={{ my: 4, display: 'flex', gap: 2 }}>
-          <TextField
-            fullWidth
-            label="Register Number"
-            variant="outlined"
-            value={registerNumber}
-            onChange={(e) => setRegisterNumber(e.target.value)}
-          />
-          <Button
-            variant="contained"
-            startIcon={<SearchIcon />}
-            onClick={handleSearch}
-            sx={{ minWidth: '120px' }}
-          >
-            Search
-          </Button>
-        </Box>
-
-        {/* Status Messages */}
-        {loading && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', my: 2 }}>
-            <CircularProgress />
+          <Box sx={{ display: 'flex', gap: 2, mb: 4 }}>
+            <TextField
+              type="file"
+              fullWidth
+              onChange={(e) => setFile(e.target.files[0])}
+              InputLabelProps={{ shrink: true }}
+              inputProps={{ accept: '.xlsx, .xls' }}
+            />
+            <Button 
+              variant="contained" 
+              onClick={handleFileUpload}
+              disabled={!file || loading}
+            >
+              Upload
+            </Button>
           </Box>
-        )}
-        {error && <Alert severity="error" sx={{ my: 2 }}>{error}</Alert>}
-        {success && <Alert severity="success" sx={{ my: 2 }}>{success}</Alert>}
 
-        {/* Results Table */}
-        {studentData && (
-          <TableContainer component={Paper} sx={{ mt: 4 }}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Register No.</TableCell>
-                  <TableCell>Name</TableCell>
-                  <TableCell>Subject</TableCell>
-                  <TableCell>Grade</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {Object.entries(studentData.subjects).map(([subject, grade]) => (
-                  <TableRow key={subject}>
-                    {subject === '21CS301' && (
-                      <>
-                        <TableCell rowSpan={6}>{studentData['Register No.']}</TableCell>
-                        <TableCell rowSpan={6}>{studentData['Name of the student']}</TableCell>
-                      </>
-                    )}
-                    <TableCell>{subject}</TableCell>
-                    <TableCell>{grade}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        )}
+          <Typography variant="h6" gutterBottom>
+            Search Student Grades
+          </Typography>
+          
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <TextField
+              fullWidth
+              label="Register Number"
+              value={registerNumber}
+              onChange={(e) => setRegisterNumber(e.target.value)}
+              placeholder="Enter register number"
+            />
+            <Button 
+              variant="contained" 
+              onClick={handleSearch}
+              disabled={!registerNumber || loading}
+            >
+              Search
+            </Button>
+          </Box>
+
+          {loading && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+              <CircularProgress />
+            </Box>
+          )}
+
+          {error && (
+            <Alert severity="error" sx={{ mt: 2 }}>
+              {error}
+            </Alert>
+          )}
+
+          {success && (
+            <Alert severity="success" sx={{ mt: 2 }}>
+              {success}
+            </Alert>
+          )}
+        </Box>
       </Paper>
     </Container>
   );

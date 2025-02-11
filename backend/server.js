@@ -51,26 +51,32 @@ async function getStudentGradesFromExcel(excelFilePath, registerNumber) {
             return cell.value.toString().trim();
         };
 
+        // Read headers from first row
+        const headers = [];
+        worksheet.getRow(1).eachCell((cell, colNumber) => {
+            headers.push(getCellValue(cell));
+        });
+
         let studentData = null;
 
         worksheet.eachRow((row, rowNumber) => {
-            if (rowNumber === 1) return;
+            if (rowNumber === 1) return; // Skip header row
 
             const currentRegisterNumber = getCellValue(row.getCell(1));
             
             if (currentRegisterNumber === registerNumber.trim()) {
+                // Initialize student data with basic info
                 studentData = {
                     "Register No.": currentRegisterNumber,
                     "Name of the student": getCellValue(row.getCell(2)),
-                    subjects: {
-                        "21CS301": getCellValue(row.getCell(3)),
-                        "21CS302": getCellValue(row.getCell(4)),
-                        "21CS303": getCellValue(row.getCell(5)),
-                        "21CS304": getCellValue(row.getCell(6)),
-                        "21PCS02": getCellValue(row.getCell(7)),
-                        "21PCS12": getCellValue(row.getCell(8))
-                    }
+                    subjects: {}
                 };
+
+                // Dynamically add subjects starting from column 3
+                for (let i = 3; i <= headers.length; i++) {
+                    const subjectCode = headers[i - 1];
+                    studentData.subjects[subjectCode] = getCellValue(row.getCell(i));
+                }
             }
         });
 
@@ -93,34 +99,38 @@ app.post("/upload", upload.single("file"), async (req, res) => {
         const worksheet = workbook.worksheets[0];
 
         const pdfPath = path.join(uploadDir, 'converted.pdf');
-        const doc = new PDFDocument({ margin: 30, size: 'A4', layout: 'landscape' });
+        const doc = new PDFDocument({ 
+            margin: 30, 
+            size: 'A4', 
+            layout: 'landscape',
+            bufferPages: true
+        });
+        
         const writeStream = fs.createWriteStream(pdfPath);
         doc.pipe(writeStream);
 
-        const getCellValue = (cell) => {
-            if (!cell || !cell.value) return '';
-            if (cell.value.richText) {
-                return cell.value.richText.map(rt => rt.text).join('');
-            }
-            if (cell.value.text) {
-                return cell.value.text;
-            }
-            if (typeof cell.value === 'object') {
-                return cell.value.result || '';
-            }
-            return cell.value.toString().trim();
-        };
+        // Add header
+        doc.fontSize(20).text('Student Grade Report', { align: 'center' });
+        doc.moveDown();
+        
+        // Add college name and department
+        doc.fontSize(14).text('Velammal college of engineering and technology', { align: 'center' });
+        doc.fontSize(12).text('Department of Computer Science and Engineering', { align: 'center' });
+        doc.moveDown();
 
+        // Read headers
         const headers = [];
         worksheet.getRow(1).eachCell((cell, colNumber) => {
             headers.push(getCellValue(cell));
         });
 
+        // Prepare table data
         const tableData = {
             headers: headers,
             rows: []
         };
 
+        // Add data rows
         for (let rowNumber = 2; rowNumber <= worksheet.rowCount; rowNumber++) {
             const row = worksheet.getRow(rowNumber);
             const rowData = [];
@@ -135,17 +145,29 @@ app.post("/upload", upload.single("file"), async (req, res) => {
             }
         }
 
-        doc.fontSize(16).text('Student Grade Sheet', { align: 'center' });
-        doc.moveDown();
-
+        // Add table
         await doc.table(tableData, {
-            prepareHeader: () => doc.fontSize(10),
+            prepareHeader: () => doc.fontSize(10).font('Helvetica-Bold'),
             prepareRow: (row, indexColumn, indexRow, rectRow, rectCell) => {
-                doc.fontSize(10);
+                doc.fontSize(10).font('Helvetica');
                 return row;
             },
-            width: 750
+            width: 750,
+            padding: 5,
+            divider: {
+                header: { disabled: false, width: 2, opacity: 1 },
+                horizontal: { disabled: false, width: 0.5, opacity: 0.5 }
+            },
+            border: { size: 0.1, color: '#000000' }
         });
+
+        // Add footer
+        doc.fontSize(10).text(
+            `Generated on: ${new Date().toLocaleDateString()}`,
+            50,
+            doc.page.height - 50,
+            { align: 'left' }
+        );
 
         doc.end();
 
@@ -161,6 +183,21 @@ app.post("/upload", upload.single("file"), async (req, res) => {
         res.status(500).json({ error: "Failed to process file: " + error.message });
     }
 });
+
+// Helper function to get cell value
+function getCellValue(cell) {
+    if (!cell || !cell.value) return '';
+    if (cell.value.richText) {
+        return cell.value.richText.map(rt => rt.text).join('');
+    }
+    if (cell.value.text) {
+        return cell.value.text;
+    }
+    if (typeof cell.value === 'object') {
+        return cell.value.result || '';
+    }
+    return cell.value.toString().trim();
+}
 
 // Route to get student details
 app.get("/getStudentDetails/:registerNumber", async (req, res) => {
@@ -181,7 +218,87 @@ app.get("/getStudentDetails/:registerNumber", async (req, res) => {
             return res.status(404).json({ error: "Student not found" });
         }
 
-        res.json(studentData);
+        // Generate PDF for student
+        const pdfPath = path.join(uploadDir, `${studentData['Register No.']}_grades.pdf`);
+        const doc = new PDFDocument({
+            margin: 50,
+            size: 'A4'
+        });
+
+        const writeStream = fs.createWriteStream(pdfPath);
+        doc.pipe(writeStream);
+
+        // Add college logo (you'll need to add the logo file to your project)
+        // doc.image('path/to/vcet-logo.png', 50, 45, { width: 80 });
+
+        // Add header
+        doc.fontSize(16).text("VELAMMAL COLLEGE OF ENGINEERING & TECHNOLOGY", { align: 'center' });
+        doc.fontSize(12).text("(Autonomous)", { align: 'center' });
+        doc.fontSize(10).text("(Accredited by NAAC with 'A' Grade and by NBA for 5 UG Programmes)", { align: 'center' });
+        doc.fontSize(10).text("(Approved by AICTE and affiliated to Anna University, Chennai)", { align: 'center' });
+        doc.fontSize(10).text("Velammal Nagar, Madurai - Rameswaram High Road, Viraganoor, Madurai - 625 009, Tamilnadu", { align: 'center' });
+        
+        // Add contact details
+        doc.moveDown();
+        doc.fontSize(10).text('Phone : 0452 - 2465285 / 2465849, Tele Fax : 0452 - 2465289', { align: 'center' });
+        doc.fontSize(10).text('Web : www.vcet.ac.in   E-mail : principal@vcet.ac.in', { align: 'center' });
+
+        // Add reference number and date
+        doc.moveDown();
+        const currentDate = new Date().toLocaleDateString('en-GB');
+        doc.fontSize(11).text(`Ref: VCET/CSE/2024-2025/BC/${studentData['Register No.']}`, { align: 'left' });
+        doc.text(`Date: ${currentDate}`, { align: 'right' });
+
+        // Add certificate title
+        doc.moveDown();
+        doc.fontSize(14).text('BONAFIDE CERTIFICATE', { align: 'center', underline: true });
+        
+        // Add student details
+        doc.moveDown();
+        doc.fontSize(11).text(`This is to certify that ${studentData['Name of the student']} (Roll No: ${studentData['Register No.']}) of III year B.E. 'A' Section in the Department of Computer Science and Engineering is a bonafide student of our College during the academic year 2024 - 2025. His Anna University result for IV Semester are as follows.`, {
+            align: 'justify',
+            lineGap: 2
+        });
+
+        // Add grades table
+        doc.moveDown();
+        const tableData = {
+            headers: ['SUBJECT CODE', 'GRADE', 'RESULT'],
+            rows: Object.entries(studentData.subjects).map(([code, grade]) => [code, grade, 'PASS'])
+        };
+
+        await doc.table(tableData, {
+            prepareHeader: () => doc.fontSize(11).font('Helvetica-Bold'),
+            prepareRow: (row, indexColumn, indexRow, rectRow, rectCell) => {
+                doc.fontSize(11).font('Helvetica');
+                return row;
+            },
+            width: 500,
+            padding: 8,
+            divider: {
+                header: { disabled: false, width: 1, opacity: 1 },
+                horizontal: { disabled: false, width: 0.5, opacity: 1 }
+            },
+            border: { size: 1, color: '#000000' }
+        });
+
+        // Add purpose
+        doc.moveDown();
+        doc.fontSize(11).text('This certificate is issued for Scholarship purpose only.', { align: 'left' });
+
+        // Add signature spaces
+        doc.moveDown(4);
+        doc.fontSize(11).text('HOD/CSE', 50, doc.y);
+        doc.text('PRINCIPAL', 450, doc.y);
+
+        doc.end();
+
+        writeStream.on('finish', () => {
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', `attachment; filename=${studentData['Register No.']}_bonafide.pdf`);
+            fs.createReadStream(pdfPath).pipe(res);
+        });
+
     } catch (error) {
         console.error("Error:", error);
         res.status(500).json({ error: error.message });
