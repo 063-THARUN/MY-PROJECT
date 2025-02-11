@@ -7,16 +7,25 @@ import {
   Typography,
   Box,
   CircularProgress,
-  Alert
+  Alert,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel
 } from '@mui/material';
 import axios from 'axios';
 
 function App() {
   const [file, setFile] = useState(null);
   const [registerNumber, setRegisterNumber] = useState('');
+  const [semester, setSemester] = useState('');
+  const [year, setYear] = useState('');
+  const [section, setSection] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [remarks, setRemarks] = useState('');
+  const [formNumber, setFormNumber] = useState('');
 
   const handleFileUpload = async (event) => {
     try {
@@ -48,8 +57,7 @@ function App() {
       setError('');
       setSuccess('');
 
-      // This will now trigger a PDF download
-      window.open(`http://localhost:3002/getStudentDetails/${registerNumber}`, '_blank');
+      window.open(`http://localhost:3002/getStudentDetails/${registerNumber}/${semester}/${year}/${section}/${encodeURIComponent(remarks)}/${formNumber}`, '_blank');
       setSuccess('Grade report generated successfully!');
     } catch (error) {
       setError(error.response?.data?.error || 'Error fetching student details');
@@ -99,7 +107,7 @@ function App() {
             Search Student Grades
           </Typography>
           
-          <Box sx={{ display: 'flex', gap: 2 }}>
+          <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' }, mb: 2 }}>
             <TextField
               fullWidth
               label="Register Number"
@@ -107,10 +115,75 @@ function App() {
               onChange={(e) => setRegisterNumber(e.target.value)}
               placeholder="Enter register number"
             />
+            
+            <TextField
+              fullWidth
+              label="Form Number"
+              value={formNumber}
+              onChange={(e) => setFormNumber(e.target.value)}
+              placeholder="Enter form number"
+            />
+            
+            <FormControl fullWidth>
+              <InputLabel>Year</InputLabel>
+              <Select
+                value={year}
+                label="Year"
+                onChange={(e) => setYear(e.target.value)}
+              >
+                <MenuItem value="I">I</MenuItem>
+                <MenuItem value="II">II</MenuItem>
+                <MenuItem value="III">III</MenuItem>
+                <MenuItem value="IV">IV</MenuItem>
+              </Select>
+            </FormControl>
+
+            <FormControl fullWidth>
+              <InputLabel>Section</InputLabel>
+              <Select
+                value={section}
+                label="Section"
+                onChange={(e) => setSection(e.target.value)}
+              >
+                <MenuItem value="A">A</MenuItem>
+                <MenuItem value="B">B</MenuItem>
+                <MenuItem value="C">C</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
+
+          <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
+            <FormControl fullWidth>
+              <InputLabel>Semester</InputLabel>
+              <Select
+                value={semester}
+                label="Semester"
+                onChange={(e) => setSemester(e.target.value)}
+              >
+                <MenuItem value="I">I</MenuItem>
+                <MenuItem value="II">II</MenuItem>
+                <MenuItem value="III">III</MenuItem>
+                <MenuItem value="IV">IV</MenuItem>
+                <MenuItem value="V">V</MenuItem>
+                <MenuItem value="VI">VI</MenuItem>
+                <MenuItem value="VII">VII</MenuItem>
+                <MenuItem value="VIII">VIII</MenuItem>
+              </Select>
+            </FormControl>
+
+            <TextField
+              fullWidth
+              label="Purpose"
+              value={remarks}
+              onChange={(e) => setRemarks(e.target.value)}
+              placeholder="Enter certificate purpose"
+            />
+
             <Button 
               variant="contained" 
               onClick={handleSearch}
-              disabled={!registerNumber || loading}
+              disabled={!registerNumber || !semester || !year || !section || !remarks || !formNumber || loading}
+              sx={{ height: 'fit-content' }}
             >
               Search
             </Button>

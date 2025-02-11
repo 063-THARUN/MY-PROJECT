@@ -71,3 +71,71 @@ body {
     transform: rotate(360deg);
   }
 }
+
+/* Add these new styles for the semester selection */
+.MuiFormControl-root {
+  background-color: white;
+}
+
+.MuiSelect-root {
+  min-width: 120px !important;
+}
+
+.MuiMenuItem-root {
+  color: #1976d2;
+}
+
+.MuiInputLabel-root {
+  color: rgba(0, 0, 0, 0.6) !important;
+}
+
+.MuiSelect-select {
+  padding: 16.5px 14px !important;
+}
+
+/* Ensure consistent styling between TextField and Select */
+.MuiOutlinedInput-root {
+  background-color: white;
+}
+
+/* Adjust spacing for the form layout */
+.MuiBox-root {
+  gap: 16px;
+  align-items: flex-start;
+}
+
+/* Style for disabled button */
+.MuiButton-contained.Mui-disabled {
+  background-color: rgba(0, 0, 0, 0.12) !important;
+  color: rgba(0, 0, 0, 0.26) !important;
+}
+.MuiFormControl-root + .MuiFormControl-root {
+  margin-left: 16px;
+}
+
+@media (max-width: 900px) {
+  .MuiFormControl-root + .MuiFormControl-root {
+    margin-left: 0;
+    margin-top: 16px;
+  }
+}
+
+/* Ensure all select dropdowns have consistent width */
+.MuiSelect-select {
+  min-width: 120px !important;
+}
+
+/* Adjust spacing between form rows */
+.MuiBox-root + .MuiBox-root {
+  margin-top: 16px;
+}
+
+/* Add styling for the remarks TextField */
+.MuiTextField-root.remarks-field {
+  min-width: 200px;
+}
+
+/* Ensure consistent height with Select components */
+.MuiTextField-root .MuiOutlinedInput-root {
+  height: 56px;
+}

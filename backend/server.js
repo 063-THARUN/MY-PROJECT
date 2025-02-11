@@ -206,7 +206,7 @@ function getCellValue(cell) {
 }
 
 // Route to get student details
-app.get("/getStudentDetails/:registerNumber", async (req, res) => {
+app.get("/getStudentDetails/:registerNumber/:semester/:year/:section/:remarks/:formNumber", async (req, res) => {
     try {
         const files = fs.readdirSync(uploadDir);
         const excelFiles = files.filter(file => file.endsWith('.xlsx') || file.endsWith('.xls'));
@@ -271,12 +271,13 @@ app.get("/getStudentDetails/:registerNumber", async (req, res) => {
                 width: doc.page.width - 140
            });
 
-        // Principal and contact details
+        // Principal and contact details with proper alignment
         doc.font('Helvetica-Bold').fontSize(11)
            .text('Dr. P. Alli, M.S., Ph.D.', 50, 160);
         doc.font('Helvetica').fontSize(11)
            .text('Principal', 50, 175);
 
+        // Contact details aligned with Principal's details
         doc.fontSize(11)
            .text('Phone : 0452 - 2465285 / 2465849, Tele Fax : 0452 - 2465289', {
                 align: 'right',
@@ -294,7 +295,7 @@ app.get("/getStudentDetails/:registerNumber", async (req, res) => {
 
         // Reference number and date
         doc.fontSize(11)
-           .text(`Ref: VCET/CSE/2024-2025/BC/${studentData['Register No.']}`, 50, 215);
+           .text(`Ref: VCET/CSE/2024-2025/BC/${req.params.formNumber}`, 50, 215);
         doc.text(`Date: ${new Date().toLocaleDateString('en-GB')}`, {
             align: 'right',
             width: doc.page.width - 100,
@@ -308,8 +309,8 @@ app.get("/getStudentDetails/:registerNumber", async (req, res) => {
                 y: 255
            });
 
-        // Certificate content with proper spacing and formatting
-        const certificateText = `This is to certify that ${studentData['Name of the student']} (Roll No: ${studentData['Register No.']}) of III year B.E. 'A' Section in the Department of Computer Science and Engineering is a bonafide student of our College during the academic year 2024 - 2025. His Anna University result for IV Semester are as follows.`;
+        // Certificate content with dynamic semester
+        const certificateText = `This is to certify that ${studentData['Name of the student']} (Roll No: ${studentData['Register No.']}) of ${req.params.year} year B.E. '${req.params.section}' Section in the Department of Computer Science and Engineering is a bonafide student of our College during the academic year 2024 - 2025. His Anna University result for ${req.params.semester} Semester are as follows.`;
 
         doc.font('Helvetica').fontSize(11)
            .text(certificateText, 50, 290, {
@@ -318,31 +319,65 @@ app.get("/getStudentDetails/:registerNumber", async (req, res) => {
                 lineGap: 5
            });
 
-        // Add table with proper borders and spacing
+        // Create a formal table with proper borders and alignments
         const tableTop = 360;
         const tableData = {
-            headers: ['SUBJECT CODE', 'GRADE', 'RESULT'],
-            rows: Object.entries(studentData.subjects).map(([code, grade]) => [code, grade, 'PASS'])
+            headers: [
+                { label: 'SUBJECT CODE', width: 200, align: 'center' },
+                { label: 'GRADE', width: 150, align: 'center' },
+                { label: 'RESULT', width: 145, align: 'center' }
+            ],
+            rows: Object.entries(studentData.subjects).map(([code, grade]) => [
+                { label: code, align: 'center', width: 200 },
+                { label: grade, align: 'center', width: 150 },
+                { label: grade === 'U' ? 'FAIL' : 'PASS', align: 'center', width: 145 }
+            ])
         };
 
-        await doc.table(tableData, {
-            prepareHeader: () => doc.font('Helvetica-Bold').fontSize(11),
-            prepareRow: () => doc.font('Helvetica').fontSize(11),
-            width: 495,
-            x: 50,
-            y: tableTop,
-            padding: 8,
-            divider: {
-                header: { disabled: false, width: 1, opacity: 1 },
-                horizontal: { disabled: false, width: 0.5, opacity: 0.5 }
-            },
-            border: { size: 0.5, color: '#000000' }
+        // Draw table header
+        doc.lineWidth(1)
+           .rect(50, tableTop, 495, 30)
+           .stroke();
+
+        // Draw header text
+        doc.font('Helvetica-Bold').fontSize(11);
+        doc.text('SUBJECT CODE', 50, tableTop + 10, { width: 200, align: 'center' });
+        doc.text('GRADE', 250, tableTop + 10, { width: 150, align: 'center' });
+        doc.text('RESULT', 400, tableTop + 10, { width: 145, align: 'center' });
+
+        // Draw vertical lines for headers
+        doc.moveTo(250, tableTop).lineTo(250, tableTop + 30).stroke();
+        doc.moveTo(400, tableTop).lineTo(400, tableTop + 30).stroke();
+
+        // Draw rows
+        let currentY = tableTop + 30;
+        doc.font('Helvetica').fontSize(11);
+
+        Object.entries(studentData.subjects).forEach(([code, grade], index) => {
+            // Draw row borders
+            doc.lineWidth(0.5)
+               .rect(50, currentY, 495, 25)
+               .stroke();
+            
+            // Draw row content
+            doc.text(code, 50, currentY + 7, { width: 200, align: 'center' });
+            doc.text(grade, 250, currentY + 7, { width: 150, align: 'center' });
+            
+            // Check grade and display appropriate result
+            const result = grade === 'U' ? 'FAIL' : 'PASS';
+            doc.text(result, 400, currentY + 7, { width: 145, align: 'center' });
+            
+            // Draw vertical lines for rows
+            doc.moveTo(250, currentY).lineTo(250, currentY + 25).stroke();
+            doc.moveTo(400, currentY).lineTo(400, currentY + 25).stroke();
+            
+            currentY += 25;
         });
 
         // Purpose text
         doc.moveDown(4);
         doc.fontSize(11)
-           .text('This certificate is issued for Scholarship purpose only.', 50, doc.y + 20);
+           .text(`This certificate is issued for ${req.params.remarks} purpose only.`, 50, doc.y + 20);
 
         // Signature spaces
         doc.moveDown(4);
