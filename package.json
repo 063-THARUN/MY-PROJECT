@@ -12,5 +12,16 @@
     "pdfkit-table": "^0.1.99",
     "react-scripts": "^5.0.1",
     "web-vitals": "^4.2.4"
-  }
+  },
+  "name": "my-project",
+  "version": "1.0.0",
+  "main": "index.js",
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
 }
