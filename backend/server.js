@@ -279,15 +279,13 @@ app.get("/getStudentDetails/:registerNumber/:semester/:year/:section/:remarks/:f
 
         // Contact details aligned with Principal's details
         doc.fontSize(11)
-           .text('Phone : 0452 - 2465285 / 2465849, Tele Fax : 0452 - 2465289', {
+           .text('Phone : 0452 - 2465285 / 2465849, Tele Fax : 0452 - 2465289', 50, 160, {
                 align: 'right',
-                width: doc.page.width - 100,
-                y: 160
+                width: doc.page.width - 100
            });
-        doc.text('Web : www.vcet.ac.in   E-mail : principal@vcet.ac.in', {
+        doc.text('Web : www.vcet.ac.in   E-mail : principal@vcet.ac.in', 50, 175, {
                 align: 'right',
-                width: doc.page.width - 100,
-                y: 175
+                width: doc.page.width - 100
            });
 
         // Horizontal line
